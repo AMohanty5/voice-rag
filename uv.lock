@@ -3310,6 +3310,9 @@ cartesia = [
 daily = [
     { name = "daily-python" },
 ]
+gladia = [
+    { name = "websockets" },
+]
 google = [
     { name = "google-cloud-speech" },
     { name = "google-cloud-texttospeech" },
@@ -5352,7 +5355,7 @@ dependencies = [
     { name = "langchain-chroma" },
     { name = "langchain-community" },
     { name = "langchain-openai" },
-    { name = "pipecat-ai", extra = ["cartesia", "daily", "google", "local-smart-turn-v3", "openai", "runner", "silero", "webrtc"] },
+    { name = "pipecat-ai", extra = ["cartesia", "daily", "gladia", "google", "local-smart-turn-v3", "openai", "runner", "silero", "webrtc"] },
     { name = "pipecat-ai-tail" },
     { name = "pipecat-ai-whisker" },
     { name = "pydantic" },
@@ -5375,7 +5378,7 @@ requires-dist = [
     { name = "langchain-chroma" },
     { name = "langchain-community" },
     { name = "langchain-openai" },
-    { name = "pipecat-ai", extras = ["cartesia", "daily", "google", "openai", "local-smart-turn-v3", "runner", "silero", "webrtc"] },
+    { name = "pipecat-ai", extras = ["cartesia", "daily", "google", "openai", "gladia", "local-smart-turn-v3", "runner", "silero", "webrtc"] },
     { name = "pipecat-ai-tail" },
     { name = "pipecat-ai-whisker" },
     { name = "pydantic" },

@@ -53,7 +53,7 @@ from pipecat.runner.types import RunnerArguments
 from pipecat.audio.vad.vad_analyzer import VADParams
 
 # AI Services
-from pipecat.services.cartesia.stt import CartesiaSTTService  # Speech-to-Text
+from pipecat.services.gladia import GladiaSTTService  # Speech-to-Text with language detection
 from pipecat.services.cartesia.tts import CartesiaTTSService  # Text-to-Speech
 from pipecat.services.openai.llm import OpenAILLMService      # Language Model
 
@@ -78,6 +78,14 @@ from rag import RAGEngine, RAGProcessor
 
 # Metrics logging (custom)
 from metrics_logger import MetricsLogger
+
+# Multilingual support (custom)
+from language_switcher import LanguageAwareVoiceSwitcher
+from multilingual_config import (
+    load_language_voice_mapping,
+    get_multilingual_system_prompt,
+    validate_multilingual_config
+)
 
 # Utilities
 from dotenv import load_dotenv
@@ -123,42 +131,75 @@ async def run_bot(transport: BaseTransport):
         ↓
         transport.output()          # Sends audio to user's speaker
         ↓
-        context_aggregator.assistant()  # Adds assistant response to history
+        context_aggregator.assistant()  # Adds assistant message to history
     """
-    logger.info("Starting bot")
+    logger.info("=" * 80)
+    logger.info("🚀 Starting Multilingual Voice RAG Bot")
+    logger.info("   STT: Gladia | LLM: OpenAI GPT-4 | TTS: Cartesia")
+    logger.info("=" * 80)
+
+    # ========================================================================
+    # Validate and Load Multilingual Configuration
+    # ========================================================================
+    
+    logger.info("🌍 Loading multilingual configuration...")
+    
+    # Validate configuration before proceeding
+    if not validate_multilingual_config():
+        logger.error("❌ Configuration validation failed. Please check your .env file.")
+        return
+    
+    # Load language-to-voice mappings
+    language_to_voice, default_voice, default_language, supported_languages = load_language_voice_mapping()
 
     # ========================================================================
     # Initialize AI Services
     # ========================================================================
     
-    # Speech-to-Text: Converts user's spoken words to text
-    # Uses Cartesia's real-time STT service
-    stt = CartesiaSTTService(api_key=os.getenv("CARTESIA_API_KEY"))
+    # Speech-to-Text: Converts user's spoken words to text with language detection
+    # Uses Gladia's multilingual STT service
+    logger.info("🎤 Initializing Gladia STT...")
+    stt = GladiaSTTService(
+        api_key=os.getenv("GLADIA_API_KEY"),
+        url=os.getenv("GLADIA_URL", "https://api.gladia.io/v2/live"),
+        confidence=0.5,  # Minimum confidence threshold for transcriptions
+        sample_rate=16000,  # Audio sample rate
+        language=None,  # Auto-detect language (don't force a specific language)
+        prosody=True,  # Enable prosody detection for better transcription
+        language_behaviour="automatic multiple languages",  # Enable multilingual detection
+    )
+    logger.info(f"   ✓ Gladia STT ready (languages: {', '.join([l.upper() for l in supported_languages])})")
 
     # Text-to-Speech: Converts bot's text responses to natural speech
-    # voice_id determines the voice characteristics (accent, tone, etc.)
+    # Voice will be switched dynamically based on detected language
+    logger.info("🔊 Initializing Cartesia TTS...")
     tts = CartesiaTTSService(
         api_key=os.getenv("CARTESIA_API_KEY"),
-        voice_id=os.getenv("CARTESIA_VOICE_ID")
+        voice_id=default_voice,  # Initial voice (will be switched by LanguageAwareVoiceSwitcher)
     )
+    logger.info(f"   ✓ Cartesia TTS ready (default voice: {default_voice[:12]}...)")
 
     # Large Language Model: Generates intelligent responses
-    # Using GPT-4 for high-quality, context-aware answers
+    # Using GPT-4 for high-quality, context-aware, multilingual answers
+    logger.info("🧠 Initializing OpenAI LLM...")
     llm = OpenAILLMService(
         api_key=os.getenv("OPENAI_API_KEY"),
-        model="gpt-4o"
+        model="gpt-4o"  # GPT-4 Omni has excellent multilingual capabilities
     )
+    logger.info("   ✓ OpenAI LLM ready (model: gpt-4o)")
 
     # ========================================================================
     # Initialize Conversation Context
     # ========================================================================
     
-    # System message defines the bot's personality and behavior
+    # System message defines the bot's personality and multilingual behavior
     # This message is always present in the conversation history
+    system_prompt = get_multilingual_system_prompt(default_language)
+    
     messages = [
         {
             "role": "system",
-            "content": "You are a knowledgeable assistant for Odisha Tourism. Use the provided context to answer questions. If you don't know the answer, say so politely.",
+            "content": system_prompt,
         },
     ]
 
@@ -192,6 +233,21 @@ async def run_bot(transport: BaseTransport):
     rtvi = RTVIProcessor()
 
     # ========================================================================
+    # Initialize Language-Aware Voice Switcher
+    # ========================================================================
+    
+    # LanguageAwareVoiceSwitcher detects language from STT and switches TTS voice
+    # This enables seamless multilingual conversations
+    logger.info("🌐 Initializing Language-Aware Voice Switcher...")
+    language_switcher = LanguageAwareVoiceSwitcher(
+        tts_service=tts,
+        language_to_voice=language_to_voice,
+        default_voice=default_voice,
+        default_language=default_language
+    )
+    logger.info("   ✓ Language switcher ready")
+
+    # ========================================================================
     # Initialize Metrics Logger
     # ========================================================================
     
@@ -205,18 +261,21 @@ async def run_bot(transport: BaseTransport):
     
     # The pipeline is a linear sequence of processors
     # Each processor receives frames, processes them, and passes them downstream
+    logger.info("🔧 Building multilingual pipeline...")
     pipeline = Pipeline([
         transport.input(),              # Audio input from user's microphone
         rtvi,                           # RTVI protocol handling
-        stt,                            # Speech → Text conversion
+        stt,                            # Speech → Text conversion (Gladia with language detection)
+        language_switcher,              # Language detection & voice switching
         rag_processor,                  # RAG context injection
         context_aggregator.user(),      # Add user message to history
         llm,                            # Generate AI response
-        tts,                            # Text → Speech conversion
+        tts,                            # Text → Speech conversion (Cartesia with dynamic voice)
         transport.output(),             # Audio output to user's speaker
         context_aggregator.assistant(), # Add assistant message to history
         metrics_logger,                 # Capture and log all metrics
     ])
+    logger.info("   ✓ Pipeline built successfully")
 
     # ========================================================================
     # Create Pipeline Task with Observers

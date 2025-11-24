@@ -1,28 +1,3 @@
-# Voice RAG Bot - Technical Documentation
-
-## Overview
-
-This is a voice-enabled AI assistant with Retrieval-Augmented Generation (RAG) capabilities, built using the Pipecat framework. The bot answers questions about Odisha Tourism by combining real-time voice interaction with a knowledge base of tourism documents.
-
-## Architecture
-
-### High-Level Flow
-
-```
-User Speech → WebRTC → STT → RAG → LLM → TTS → WebRTC → User Hears Response
-```
-
-### Detailed Pipeline
-
-1. **Audio Input**: User speaks into microphone
-2. **Transport Layer**: WebRTC captures and streams audio
-3. **Speech-to-Text (STT)**: Cartesia converts speech to text
-4. **RAG Processing**: 
-   - Receives transcribed text
-   - Queries vector database for relevant context
-   - Injects context into conversation
-5. **LLM Processing**: OpenAI GPT-4 generates response using context
-6. **Text-to-Speech (TTS)**: Cartesia converts response to natural speech
 7. **Audio Output**: User hears the response
 
 ### Component Architecture
