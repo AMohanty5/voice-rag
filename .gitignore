@@ -37,3 +37,6 @@ Thumbs.db
 # Test files
 test_*.py
 *_test.py
+
+# Grafana credentials - DO NOT COMMIT
+GRAFANA_CORRECT_CONFIG.md

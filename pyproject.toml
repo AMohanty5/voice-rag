@@ -17,6 +17,10 @@ dependencies = [
     "docx2txt",
     "httpx",
     "chardet",
+    # OpenTelemetry for Grafana Cloud metrics
+    "opentelemetry-api",
+    "opentelemetry-sdk",
+    "opentelemetry-exporter-otlp-proto-http",
 ]
 
 [dependency-groups]

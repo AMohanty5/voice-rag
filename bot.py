@@ -78,6 +78,7 @@ from rag import RAGEngine, RAGProcessor
 
 # Metrics logging (custom)
 from metrics_logger import MetricsLogger
+from grafana_metrics import GrafanaMetricsExporter
 
 # Multilingual support (custom)
 from language_switcher import LanguageAwareVoiceSwitcher
@@ -248,12 +249,21 @@ async def run_bot(transport: BaseTransport):
     logger.info("   ✓ Language switcher ready")
 
     # ========================================================================
-    # Initialize Metrics Logger
+    # Initialize Metrics Loggers
     # ========================================================================
     
     # MetricsLogger captures and logs comprehensive pipeline metrics
     # Tracks TTFB, processing time, token usage, character usage, etc.
     metrics_logger = MetricsLogger()
+    
+    # GrafanaMetricsExporter sends metrics to Grafana Cloud via OpenTelemetry
+    # Includes unique Call ID and model information
+    grafana_exporter = GrafanaMetricsExporter(
+        llm_model="gpt-4o",
+        stt_model="gladia",
+        tts_model="cartesia",
+        service_name="voice-rag-bot"
+    )
 
     # ========================================================================
     # Assemble the Processing Pipeline
@@ -273,7 +283,8 @@ async def run_bot(transport: BaseTransport):
         tts,                            # Text → Speech conversion (Cartesia with dynamic voice)
         transport.output(),             # Audio output to user's speaker
         context_aggregator.assistant(), # Add assistant message to history
-        metrics_logger,                 # Capture and log all metrics
+        metrics_logger,                 # Capture and log all metrics (console)
+        grafana_exporter,               # Export metrics to Grafana Cloud
     ])
     logger.info("   ✓ Pipeline built successfully")
 
