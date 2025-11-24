@@ -76,6 +76,9 @@ from pipecat_whisker import WhiskerObserver
 # RAG components (custom)
 from rag import RAGEngine, RAGProcessor
 
+# Metrics logging (custom)
+from metrics_logger import MetricsLogger
+
 # Utilities
 from dotenv import load_dotenv
 from loguru import logger
@@ -189,6 +192,14 @@ async def run_bot(transport: BaseTransport):
     rtvi = RTVIProcessor()
 
     # ========================================================================
+    # Initialize Metrics Logger
+    # ========================================================================
+    
+    # MetricsLogger captures and logs comprehensive pipeline metrics
+    # Tracks TTFB, processing time, token usage, character usage, etc.
+    metrics_logger = MetricsLogger()
+
+    # ========================================================================
     # Assemble the Processing Pipeline
     # ========================================================================
     
@@ -204,6 +215,7 @@ async def run_bot(transport: BaseTransport):
         tts,                            # Text → Speech conversion
         transport.output(),             # Audio output to user's speaker
         context_aggregator.assistant(), # Add assistant message to history
+        metrics_logger,                 # Capture and log all metrics
     ])
 
     # ========================================================================
@@ -215,8 +227,9 @@ async def run_bot(transport: BaseTransport):
     task = PipelineTask(
         pipeline,
         params=PipelineParams(
-            enable_metrics=True,        # Track performance metrics
-            enable_usage_metrics=True,  # Track API usage (tokens, costs)
+            enable_metrics=True,              # Track performance metrics (TTFB, processing time)
+            enable_usage_metrics=True,        # Track API usage (tokens, characters, costs)
+            report_only_initial_ttfb=True,    # Report only first TTFB for better performance
         ),
         observers=[
             RTVIObserver(rtvi),         # RTVI protocol observer
