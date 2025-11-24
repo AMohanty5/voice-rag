@@ -11,22 +11,25 @@ This is the main bot application that creates a voice-enabled AI assistant with
 RAG capabilities for answering questions about Odisha Tourism.
 
 Architecture Overview:
-    User speaks → WebRTC/Daily → STT (Cartesia) → RAG Processor → LLM (OpenAI) → TTS (Cartesia) → User hears
+    User speaks → WebRTC/Daily → STT (Gladia) → Language Switcher → RAG Processor → LLM (OpenAI) → TTS (Cartesia) → User hears
 
 The bot supports two transport modes:
 1. SmallWebRTC: Local browser-based WebRTC (default, runs on localhost:7860)
 2. Daily.co: Cloud-based WebRTC rooms for production deployment
 
 Required AI Services:
-- Cartesia: Speech-to-Text and Text-to-Speech
+- Gladia: Speech-to-Text with automatic language detection
+- Cartesia: Text-to-Speech with dynamic voice switching
 - OpenAI: Large Language Model (GPT-4)
 - ChromaDB: Vector database for RAG (initialized via ingest.py)
 
 Environment Variables Required:
-- CARTESIA_API_KEY: API key for Cartesia STT/TTS
-- CARTESIA_VOICE_ID: Voice ID for TTS output
+- GLADIA_API_KEY: API key for Gladia STT
+- CARTESIA_API_KEY: API key for Cartesia TTS
 - OPENAI_API_KEY: API key for OpenAI LLM and embeddings
 - DAILY_API_KEY: (Optional) For Daily.co transport mode
+- OTEL_EXPORTER_OTLP_ENDPOINT: (Optional) For Grafana metrics
+- OTEL_EXPORTER_OTLP_HEADERS: (Optional) For Grafana metrics
 
 Usage:
     uv run bot.py                    # Starts local WebRTC server on port 7860
@@ -108,9 +111,10 @@ async def run_bot(transport: BaseTransport):
     
     This function sets up the complete processing pipeline:
     1. Audio Input (microphone) → STT → Text
-    2. Text → RAG Processor (retrieves context) → LLM Context
-    3. LLM Context → OpenAI → Response Text
-    4. Response Text → TTS → Audio Output (speaker)
+    2. Text → Language Switcher (detects language)
+    3. Text → RAG Processor (retrieves context) → LLM Context
+    4. LLM Context → OpenAI → Response Text
+    5. Response Text → TTS → Audio Output (speaker)
     
     Args:
         transport: The transport layer (WebRTC connection) for audio I/O
@@ -120,7 +124,9 @@ async def run_bot(transport: BaseTransport):
         ↓
         rtvi                        # RTVI protocol handler for client communication
         ↓
-        stt                         # Converts speech to text (Cartesia)
+        stt                         # Converts speech to text (Gladia)
+        ↓
+        language_switcher           # Detects language and switches TTS voice
         ↓
         rag_processor               # Queries vector DB and injects context
         ↓
@@ -133,6 +139,10 @@ async def run_bot(transport: BaseTransport):
         transport.output()          # Sends audio to user's speaker
         ↓
         context_aggregator.assistant()  # Adds assistant message to history
+        ↓
+        metrics_logger              # Logs metrics to console
+        ↓
+        grafana_exporter            # Exports metrics to Grafana Cloud
     """
     logger.info("=" * 80)
     logger.info("🚀 Starting Multilingual Voice RAG Bot")

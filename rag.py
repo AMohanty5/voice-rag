@@ -215,7 +215,7 @@ class RAGProcessor(FrameProcessor):
             direction: The direction of the frame (DOWNSTREAM or UPSTREAM)
         
         Flow:
-        - User speaks -> STT -> TextFrame -> RAGProcessor -> (context injected) -> LLM
+            - User speaks -> STT -> TextFrame -> RAGProcessor -> (context injected) -> LLM
         """
         # Call parent class to handle control frames like StartFrame
         # This is critical for proper pipeline initialization
