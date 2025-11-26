@@ -1,6 +1,7 @@
 # Environment variables - DO NOT COMMIT THIS FILE
 .env
 
+
 # Virtual environment
 .venv/
 venv/
