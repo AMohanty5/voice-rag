@@ -156,6 +156,22 @@ class MetricsLogger(FrameProcessor):
                     "processor": metric_data.processor,
                     "timestamp": timestamp.isoformat()
                 })
+
+                # Specific logging for LLM response time
+                if "llm" in metric_data.processor.lower():
+                    logger.info(
+                        f"⏱️  LLM Response Turn Around Time: {processing_ms:.2f}ms"
+                    )
+                # Specific logging for STT response time
+                elif "stt" in metric_data.processor.lower() or "gladia" in metric_data.processor.lower():
+                    logger.info(
+                        f"⏱️  STT Response Time: {processing_ms:.2f}ms"
+                    )
+                # Specific logging for TTS response time
+                elif "tts" in metric_data.processor.lower() or "cartesia" in metric_data.processor.lower():
+                    logger.info(
+                        f"⏱️  TTS Response Time: {processing_ms:.2f}ms"
+                    )
             
             # ================================================================
             # LLM Token Usage Metrics

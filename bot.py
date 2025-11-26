@@ -191,13 +191,13 @@ async def run_bot(transport: BaseTransport):
     logger.info(f"   ✓ Cartesia TTS ready (default voice: {default_voice[:12]}...)")
 
     # Large Language Model: Generates intelligent responses
-    # Using GPT-4 for high-quality, context-aware, multilingual answers
+    # Using GPT-4o mini for faster responses and lower latency
     logger.info("🧠 Initializing OpenAI LLM...")
     llm = OpenAILLMService(
         api_key=os.getenv("OPENAI_API_KEY"),
-        model="gpt-4o"  # GPT-4 Omni has excellent multilingual capabilities
+        model="gpt-4o-mini"
     )
-    logger.info("   ✓ OpenAI LLM ready (model: gpt-4o)")
+    logger.info("   ✓ OpenAI LLM ready (model: gpt-4o-mini)")
 
     # ========================================================================
     # Initialize Conversation Context
@@ -269,7 +269,7 @@ async def run_bot(transport: BaseTransport):
     # GrafanaMetricsExporter sends metrics to Grafana Cloud via OpenTelemetry
     # Includes unique Call ID and model information
     grafana_exporter = GrafanaMetricsExporter(
-        llm_model="gpt-4o",
+        llm_model="gpt-4o-mini",
         stt_model="gladia",
         tts_model="cartesia",
         service_name="voice-rag-bot"

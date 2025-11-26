@@ -175,6 +175,27 @@ class GrafanaMetricsExporter(FrameProcessor):
             description="Processing time in milliseconds",
             unit="ms"
         )
+
+        # Histogram for LLM response time (Turn Around Time)
+        self.llm_response_time_histogram = self.meter.create_histogram(
+            name="voice.llm.response_time.milliseconds",
+            description="LLM Response Turn Around Time in milliseconds",
+            unit="ms"
+        )
+
+        # Histogram for STT response time
+        self.stt_response_time_histogram = self.meter.create_histogram(
+            name="voice.stt.response_time.milliseconds",
+            description="STT Response Time in milliseconds",
+            unit="ms"
+        )
+
+        # Histogram for TTS response time
+        self.tts_response_time_histogram = self.meter.create_histogram(
+            name="voice.tts.response_time.milliseconds",
+            description="TTS Response Time in milliseconds",
+            unit="ms"
+        )
         
         # Counter for LLM tokens
         self.llm_tokens_counter = self.meter.create_counter(
@@ -283,6 +304,39 @@ class GrafanaMetricsExporter(FrameProcessor):
                     f"⚙️  [Grafana] Processing: {processing_ms:.2f}ms | "
                     f"Processor: {metric_data.processor}"
                 )
+
+                # Record specific LLM response time
+                if "llm" in metric_data.processor.lower():
+                    self.llm_response_time_histogram.record(
+                        processing_ms,
+                        attributes={
+                            **common_attrs,
+                            "processor": metric_data.processor
+                        }
+                    )
+                    logger.info(f"⏱️  [Grafana] LLM Response Time: {processing_ms:.2f}ms")
+                
+                # Record specific STT response time
+                elif "stt" in metric_data.processor.lower() or "gladia" in metric_data.processor.lower():
+                    self.stt_response_time_histogram.record(
+                        processing_ms,
+                        attributes={
+                            **common_attrs,
+                            "processor": metric_data.processor
+                        }
+                    )
+                    logger.info(f"⏱️  [Grafana] STT Response Time: {processing_ms:.2f}ms")
+
+                # Record specific TTS response time
+                elif "tts" in metric_data.processor.lower() or "cartesia" in metric_data.processor.lower():
+                    self.tts_response_time_histogram.record(
+                        processing_ms,
+                        attributes={
+                            **common_attrs,
+                            "processor": metric_data.processor
+                        }
+                    )
+                    logger.info(f"⏱️  [Grafana] TTS Response Time: {processing_ms:.2f}ms")
             
             # LLM Token Usage Metrics
             elif isinstance(metric_data, LLMUsageMetricsData):

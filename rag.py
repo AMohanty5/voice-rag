@@ -12,6 +12,7 @@ from the knowledge base rather than relying solely on the LLM's training data.
 """
 
 import os
+import time
 from typing import List
 from langchain_community.document_loaders import Docx2txtLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -139,7 +140,7 @@ class RAGEngine:
         else:
             logger.warning("No text chunks created from documents.")
 
-    def query(self, query_text: str, k: int = 3) -> str:
+    async def query(self, query_text: str, k: int = 2) -> str:
         """
         Query the vector store to retrieve relevant context.
         
@@ -149,21 +150,35 @@ class RAGEngine:
         
         Args:
             query_text: The user's question or query text
-            k: Number of most similar chunks to retrieve (default: 3)
+            k: Number of most similar chunks to retrieve (default: 2)
         
         Returns:
             A string containing the concatenated content of the k most relevant chunks,
             separated by double newlines. Returns empty string if no vector store exists.
         
         Example:
-            >>> engine.query("Tell me about Konark Sun Temple", k=2)
+            >>> await engine.query("Tell me about Konark Sun Temple", k=2)
             "The Konark Sun Temple is a 13th-century temple...\\n\\nLocated in Odisha..."
         """
         if not self.vector_store:
             return ""
         
-        # Perform similarity search to find the k most relevant chunks
-        results = self.vector_store.similarity_search(query_text, k=k)
+        start_time = time.time()
+        
+        # Run synchronous similarity search in a thread pool to avoid blocking the event loop
+        import asyncio
+        loop = asyncio.get_running_loop()
+        
+        # Define the synchronous search function
+        def _search():
+            return self.vector_store.similarity_search(query_text, k=k)
+            
+        # Execute in thread pool
+        results = await loop.run_in_executor(None, _search)
+        
+        duration = (time.time() - start_time) * 1000
+        
+        logger.info(f"RAG Retrieval: {len(results)} chunks in {duration:.2f}ms")
         
         # Concatenate the content of all retrieved chunks
         context = "\n\n".join([doc.page_content for doc in results])
@@ -225,7 +240,7 @@ class RAGProcessor(FrameProcessor):
         if isinstance(frame, TextFrame):
             text = frame.text
             # Query the RAG engine for relevant context
-            context_str = self.rag_engine.query(text)
+            context_str = await self.rag_engine.query(text)
             
             if context_str:
                 # Log the first 100 characters of retrieved context for debugging

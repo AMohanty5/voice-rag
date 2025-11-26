@@ -113,19 +113,6 @@ voice-llm/server/
   - `query(text, k=3)`: Retrieves k most relevant chunks
 
 **Document Processing**:
-1. Load .docx files using `Docx2txtLoader`
-2. Split into chunks (1000 chars, 200 overlap)
-3. Generate embeddings using OpenAI
-4. Store in ChromaDB vector database
-
-**RAGProcessor Class**:
-- **Purpose**: Pipecat processor that injects RAG context
-- **Flow**:
-  1. Receives `TextFrame` with user's transcribed speech
-  2. Queries `RAGEngine` for relevant context
-  3. Injects context as system message
-  4. Passes frame to LLM
-
 ### 3. ingest.py - Document Ingestion
 
 **Purpose**: Standalone script to populate the vector database.
@@ -136,38 +123,6 @@ voice-llm/server/
 3. Vector database persists to `./chroma_db`
 
 **When to Run**:
-- Before first bot startup
-- After adding/updating documents in `Odisha_Tourism/`
-
-## Features
-
-### 🌍 Multilingual Support
-
-The bot now supports seamless multilingual conversations with automatic language detection and voice switching.
-
-- **Auto-Detection**: Uses Gladia STT to detect language from speech.
-- **Dynamic Voice Switching**: Switches Cartesia TTS voice to match the user's language.
-- **Multilingual LLM**: GPT-4 responds in the detected language.
-- **Supported Languages**: English, Hindi, Odia, and 100+ others.
-
-👉 **See [MULTILINGUAL_GUIDE.md](MULTILINGUAL_GUIDE.md) for details.**
-
-### 📊 Grafana Cloud Integration
-
-Real-time metrics monitoring using OpenTelemetry.
-
-- **Performance**: Track TTFB and processing times.
-- **Usage**: Monitor LLM tokens and TTS characters.
-- **Cost**: Real-time cost estimation.
-- **Dashboards**: Visualize metrics in Grafana Cloud.
-
-👉 **See [GRAFANA_GUIDE.md](GRAFANA_GUIDE.md) for details.**
-
-## Configuration
-
-### Environment Variables
-
-Required in `.env`:
 
 ```bash
 # Gladia (STT)
